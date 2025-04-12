@@ -1,7 +1,18 @@
 # Развертывание Cassandra
 
 ## 1. Создание рабочей директории
-
+```bash
+docker image pull cassandra:4.0.9
+docker run --rm -d --name tmp cassandra:4.0.9
+docker cp tmp:/etc/cassandra etc_cassandra-4.0.9_vanilla
+docker stop tmp
+```
+```bash
+mkdir -p etc
+cp -a etc_cassandra-4.0.9_vanilla etc/cass1
+cp -a etc_cassandra-4.0.9_vanilla etc/cass2
+cp -a etc_cassandra-4.0.9_vanilla etc/cass3
+```
 ```bash
 mkdir C:\Cass
 cd C:\Cass
