@@ -114,7 +114,7 @@ docker exec -it cass1 cqlsh
 
 Выполнение следующих команд:
 
--- 1. Ключевое пространство для российских данных
+### 3.2. Ключевое пространство для российских данных
 ```sql
 CREATE KEYSPACE ru_data WITH replication = {
   'class': 'SimpleStrategy',
@@ -126,7 +126,7 @@ CREATE KEYSPACE ru_data WITH replication = {
 USE ru_data;
 ```
 
--- 2. Таблица российских городов
+### 3.3. Таблица российских городов
 ```sql
 CREATE TABLE russian_cities (
   region text,
@@ -139,7 +139,7 @@ CREATE TABLE russian_cities (
 ) WITH CLUSTERING ORDER BY (city ASC);
 ```
 
--- 3. Таблица российских компаний
+### 3.4. Таблица российских компаний
 ```sql
 CREATE TABLE russian_companies (
   industry text,
@@ -152,7 +152,7 @@ CREATE TABLE russian_companies (
 ) WITH CLUSTERING ORDER BY (revenue_mln_rub DESC, company_name ASC);
 ```
 
--- 4. Таблица российской одежды
+### 3.5. Таблица российской одежды
 ```sql
 CREATE TABLE russian_clothing (
   clothing_type text,
@@ -165,7 +165,7 @@ CREATE TABLE russian_clothing (
 ) WITH CLUSTERING ORDER BY (brand ASC, price_rub DESC);
 ```
 
--- 5. Заполнение данными российских городов
+### 3.6. Заполнение данными российских городов
 ```sql
 INSERT INTO russian_cities (region, city, population, foundation_year, area_km2, is_administrative_center)
 VALUES ('Московская область', 'Москва', 12655050, 1147, 2561.5, true);
@@ -183,7 +183,7 @@ INSERT INTO russian_cities (region, city, population, foundation_year, area_km2,
 VALUES ('Краснодарский край', 'Краснодар', 948827, 1793, 339.3, true);
 ```
 
--- 6. Заполнение данными российских компаний
+### 3.7. Заполнение данными российских компаний
 ```sql
 INSERT INTO russian_companies (industry, company_name, revenue_mln_rub, employees, founded_year, headquarters)
 VALUES ('Нефтегазовая', 'Газпром', 10079000, 466000, 1989, 'Москва');
@@ -201,7 +201,7 @@ INSERT INTO russian_companies (industry, company_name, revenue_mln_rub, employee
 VALUES ('IT', 'VK', 125000, 12500, 1998, 'Санкт-Петербург');
 ```
 
--- 7. Заполнение данными российской одежды
+### 3.8. Заполнение данными российской одежды
 ```sql
 INSERT INTO russian_clothing (clothing_type, brand, price_rub, size, in_stock, made_in)
 VALUES ('Пальто', 'ZARINA', 7999.99, 'M', true, 'Москва');
@@ -221,7 +221,7 @@ VALUES ('Футболка', 'Sela', 1499.00, 'M', true, 'Краснодар');
 
 ## 4. Запросы
 
--- 1. Города с населением более 1 миллиона
+### 4.1. Города с населением более 1 миллиона
 ```sql
 SELECT * FROM russian_cities WHERE population > 1000000 ALLOW FILTERING;
 ```
@@ -238,7 +238,7 @@ SELECT * FROM russian_cities WHERE population > 1000000 ALLOW FILTERING;
 (4 rows)
 ```
 
--- 2. Компании IT-индустрии с сортировкой по доходу
+### 4.2. Компании IT-индустрии с сортировкой по доходу
 ```sql
 SELECT * FROM russian_companies WHERE industry = 'IT';
 ```
@@ -252,7 +252,7 @@ SELECT * FROM russian_companies WHERE industry = 'IT';
 
 (2 rows)
 ```
--- 3. Одежда бренда ZARINA
+### 4.3. Одежда бренда ZARINA
 ```sql
 SELECT * FROM russian_clothing WHERE brand = 'ZARINA' ALLOW FILTERING;
 ```
@@ -265,12 +265,12 @@ SELECT * FROM russian_clothing WHERE brand = 'ZARINA' ALLOW FILTERING;
 
 (1 rows)
 ```
--- 4. Создание индекса для поиска по наличию товара
+### 4.4. Создание индекса для поиска по наличию товара
 ```sql
 CREATE INDEX ON russian_clothing (in_stock);
 ```
 
--- 5. Поиск одежды в наличии
+### 4.5. Поиск одежды в наличии
 ```sql
 SELECT * FROM russian_clothing WHERE in_stock = true;
 ```
