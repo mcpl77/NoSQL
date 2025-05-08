@@ -1,4 +1,4 @@
-Развёртывание Redis в Docker и тестирование производительности с большими JSON-данными
+# Развёртывание Redis в Docker и тестирование производительности с большими JSON-данными
 
 # 1. Развёртывание Redis в Docker через PyCharm
 ## 1.1. Настройка docker-compose.yml
@@ -42,7 +42,7 @@ docker exec -it redis_container redis-cli -a qwerty
 PING  # Должен вернуть "PONG"
 ```
 ## 2.2. Через Python (используем PyCharm)
-Установливаем библиотеку:
+Устанавливаем библиотеку:
 ```bash
 pip install redis
 ```
