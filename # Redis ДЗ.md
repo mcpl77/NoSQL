@@ -1,7 +1,7 @@
 Развёртывание Redis в Docker и тестирование производительности с большими JSON-данными
 
-1. Развёртывание Redis в Docker через PyCharm
-1.1. Настройка docker-compose.yml
+# 1. Развёртывание Redis в Docker через PyCharm
+## 1.1. Настройка docker-compose.yml
 Создаем файл docker-compose.yml:
 
 ```yaml
@@ -22,7 +22,7 @@ volumes:
   redis_data:
 ```
 
-1.2. Запуск Redis
+## 1.2. Запуск Redis
 ```bash
 docker-compose up -d
 ```
@@ -32,8 +32,8 @@ docker ps
 ```
 Должен отобразиться контейнер redis_container.
 
-2. Подключение к Redis
-2.1. Через redis-cli
+# 2. Подключение к Redis
+## 2.1. Через redis-cli
 ```bash
 docker exec -it redis_container redis-cli -a qwerty
 ```
@@ -41,7 +41,7 @@ docker exec -it redis_container redis-cli -a qwerty
 ```bash
 PING  # Должен вернуть "PONG"
 ```
-2.2. Через Python (используем PyCharm)
+## 2.2. Через Python (используем PyCharm)
 Установливаем библиотеку:
 ```bash
 pip install redis
@@ -59,8 +59,8 @@ r = redis.Redis(
 
 print("Подключение успешно:", r.ping())
 ```
-3. Работа с JSON-файлом
-3.1. Генерация тестового JSON
+# 3. Работа с JSON-файлом
+## 3.1. Генерация тестового JSON
 Создаем файл generate_json.py:
 ```python
 import json
@@ -85,7 +85,7 @@ print("Файл large_data.json создан.")
 ```bash
 python generate_json.py
 ```
-3.2. Загрузка JSON в Redis
+## 3.2. Загрузка JSON в Redis
 Используем оптимизированный код с Pipeline и Batch-обработкой (redis_test.py):
 ```python
 import json
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
 Запись заняла: 4.25 сек
 
-4. Тестирование скорости чтения
+# 4. Тестирование скорости чтения
 Добавляем в redis_test.py:
 ```python
 def test_read():
@@ -152,7 +152,7 @@ print(f"Чтение заняло: {read_time:.2f} сек")
 
 Чтение заняло: 0.87 сек
 
-5. Проверка данных в Redis CLI
+# 5. Проверка данных в Redis CLI
 ```bash
 docker exec -it redis_container redis-cli -a your_strong_password
 ```
@@ -162,10 +162,10 @@ HGET optimized_hset user_1
 ZRANGE optimized_zset 0 -1
 LLEN optimized_list
 ```
-6. Выводы
+# 6. Выводы
 Метрика	| Результат
 ---------------------
-Запись  | (20 МБ)	~4.25 сек
+Запись  |~4.25 сек
 Чтение	|~0.87 сек
 
 Оптимизации:
