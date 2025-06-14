@@ -1,0 +1,213 @@
+# Шаг 1 Создаем файл docker-compose.yml:
+```yml
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka1_data:/var/lib/kafka/data
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9093
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka2_data:/var/lib/kafka/data
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka3_data:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29092,kafka2:29092,kafka3:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      DYNAMIC_CONFIG_ENABLED: 'true'
+
+  kafka-cli:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    entrypoint: ["/bin/bash"]
+    command: ["-c", "sleep infinity"]
+    environment:
+      PATH: /bin:/usr/bin:/usr/local/bin:/opt/kafka/bin
+    networks:
+      - default
+
+volumes:
+  zookeeper_data:
+  zookeeper_log:
+  kafka1_data:
+  kafka2_data:
+  kafka3_data:
+
+networks:
+  default:
+    name: kafka-cluster_default
+```
+
+Запускаем кластер:
+```bash
+docker-compose up -d
+```
+# Шаг 2: Создание топика через Kafka UI
+Открываем http://localhost:8080.
+Переходим в Topics.
+Нажимаем Create Topic.
+
+Заполняем:
+Topic Name: test-topic
+Partitions: 3
+Replication Factor: 3
+Нажимаем Create.
+
+# Шаг 3: Отправка сообщений через kafka-console-producer
+Входим в контейнер kafka-cli:
+```bash
+docker exec -it kafka-kafka-cli-1 /bin/bash
+```
+Отправляем сообщения в топик test-topic:
+```bash
+kafka-console-producer --topic test-topic --bootstrap-server kafka1:29092
+```
+Вводим:
+```bash
+Hello, Kafka!
+Message 1
+Message 2
+```
+# Шаг 4: Чтение сообщений через Kafka UI или kafka-console-consumer
+Вариант 1: Через Kafka UI
+Открываем http://localhost:8080.
+Переходим в Topics > test-topic > Messages.
+Видим сообщения: Hello, Kafka!, Message 1, Message 2.
+
+Вариант 2: Через kafka-console-consumer
+В контейнере kafka-cli:
+```bash
+kafka-console-consumer --topic test-topic --bootstrap-server kafka1:29092 --from-beginning
+```
+# Шаг 5: Отправка и чтение сообщений на Python
+Создаем файл producer.py:
+```python
+from confluent_kafka import Producer
+import time
+
+def delivery_report(err, msg):
+    if err is not None:
+        print(f'Message delivery failed: {err}')
+    else:
+        print(f'Message delivered to {msg.topic()} [Partition {msg.partition()}]')
+
+def send_messages():
+    conf = {
+        'bootstrap.servers': 'localhost:9092,localhost:9093,localhost:9094',
+        'client.id': 'python-producer'
+    }
+    producer = Producer(conf)
+
+    topic = 'test-topic'
+    messages = ['Hello from Python!', 'Message 2 from Python', 'Message 3 from Python']
+
+    for message in messages:
+        producer.produce(topic, value=message.encode('utf-8'), callback=delivery_report)
+        producer.poll(0)
+        time.sleep(1)  # Задержка для наглядности
+
+    producer.flush()
+
+if __name__ == '__main__':
+    send_messages()
+```
+Создаем файл consumer.py:
+```python
+from confluent_kafka import Consumer, KafkaError
+
+def read_messages():
+    conf = {
+        'bootstrap.servers': 'localhost:9092,localhost:9093,localhost:9094',
+        'group.id': 'python-consumer-group',
+        'auto.offset.reset': 'earliest'
+    }
+    consumer = Consumer(conf)
+    consumer.subscribe(['test-topic'])
+
+    try:
+        while True:
+            msg = consumer.poll(1.0)
+            if msg is None:
+                continue
+            if msg.error():
+                if msg.error().code() == KafkaError._PARTITION_EOF:
+                    print('Reached end of partition')
+                else:
+                    print(f'Error: {msg.error()}')
+            else:
+                print(f'Received message: {msg.value().decode("utf-8")} [Partition {msg.partition()}]')
+    except KeyboardInterrupt:
+        consumer.close()
+
+if __name__ == '__main__':
+    read_messages()
+```
+Запускаем скрипты
