@@ -1,0 +1,97 @@
+# Tarantool
+# 1. Запуск контейнера
+```bash
+docker run --name mytarantool -d -p 3301:3301 tarantool/tarantool:latest
+```
+# Подключение к консоли Tarantool
+```bash
+docker exec -it mytarantool console
+```
+# Запуск
+# 2. Настройка базы данных
+В консоли Tarantool:
+
+Создаем спейс (таблицу) для хранения данных
+```lua
+box.schema.space.create('tickets', {
+    if_not_exists = true,
+    format = {
+        {name = 'id', type = 'unsigned'},
+        {name = 'airline', type = 'string'},
+        {name = 'departure_date', type = 'string'},
+        {name = 'departure_city', type = 'string'},  -- Исправлено с departure_city
+        {name = 'arrival_city', type = 'string'},
+        {name = 'min_price', type = 'unsigned'}
+    }
+})
+```
+Создаем первичный индекс
+```lua
+box.space.tickets:create_index('primary', {
+    parts = {'id'},
+    if_not_exists = true
+})
+```
+Создаем вторичный индекс
+```lua
+box.space.tickets:create_index('secondary', {
+    parts = {'departure_date', 'airline', 'departure_city'},
+    if_not_exists = true,
+    unique = false
+})
+```
+# 3. Добавление тестовых данных
+Очищаем существующие данные (если нужно)
+```lua
+box.space.tickets:truncate()
+```
+Добавляем тестовые данные
+```lua
+box.space.tickets:insert{1, 'Aeroflot', '01.01.2025', 'Moscow', 'London', 2500}
+box.space.tickets:insert{2, 'S7', '01.01.2025', 'Novosibirsk', 'Moscow', 3500}
+box.space.tickets:insert{3, 'Aeroflot', '02.01.2025', 'Moscow', 'Paris', 2800}
+box.space.tickets:insert{4, 'Pobeda', '01.01.2025', 'St. Petersburg', 'Moscow', 2900}
+box.space.tickets:insert{5, 'Ural Airlines', '01.01.2025', 'Ekaterinburg', 'Sochi', 2700}
+```
+# 4. Функция для поиска дешевых рейсов
+```lua
+Создаем и сохраняем функцию
+function cheap_flights(max_price)
+    print(string.format("\nРейсы дешевле %d рублей:", max_price))
+    local result = {}
+    for _, ticket in box.space.tickets:pairs() do
+        if ticket.min_price < max_price then
+            table.insert(result, ticket)
+            print(string.format("%-15s %s → %s (%d руб.)", 
+                  ticket.airline, ticket.departure_city, 
+                  ticket.arrival_city, ticket.min_price))
+        end
+    end
+    print(string.format("Найдено %d рейсов", #result))
+    return result
+end
+```
+Сохраняем функцию
+```lua
+box.schema.func.create('cheap_flights', {if_not_exists = true})
+```
+# 5. Проверка работы
+Поиск минимальной цены на 01.01.2025
+```lua
+local result = box.space.tickets.index.secondary:select({'01.01.2025'})
+local min_price = nil
+for _, ticket in ipairs(result) do
+    if min_price == nil or ticket.min_price < min_price then
+        min_price = ticket.min_price
+    end
+end
+print('\nМинимальная стоимость на 01.01.2025:', min_price)
+```
+Вызов функции для поиска дешевых рейсов
+```lua
+cheap_flights(3000)
+```
+```lua
+Альтернативный вызов сохраненной функции
+box.func.cheap_flights:call({3000})
+```
